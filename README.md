@@ -15,10 +15,15 @@ provider "aws" {
     region = "us-east-1"
 }
 
+data "aws_route53_zone" "domain" {
+  name         = "davidvargas.me."
+}
+
 module "aws_email" {
     source    = "dvargas92495/email/aws"
 
     domain    = "example.davidvargas.me"
+    zone_id   = data.aws_route53_zone.domain.zone_id
 }
 ```
 
