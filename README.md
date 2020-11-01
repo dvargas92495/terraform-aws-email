@@ -24,6 +24,7 @@ module "aws_email" {
 
 ## Inputs
 - `domain` - The domain the email address will be associated with.
+- `zone_id` - The zone id to attach the domain to.
 
 ## Output
 
