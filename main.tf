@@ -119,7 +119,53 @@ data "archive_file" "lambda" {
   type        = "zip"
   output_path = "lambda.zip"
   source {
-    content  = templatefile("${path.module}/lambda-template.js", { from_email = local.email_identity, email_bucket = local.mail_from_domain, domain = local.domain, recipient = local.forward_to })
+    content  = templatefile("${path.module}/lambda-template.js", { from_email = local.email_identity, email_bucket = local.mail_from_domain, domain = var.domain, recipient = var.forward_to })
     filename = "lambda.js"
   }
+}
+
+data "aws_iam_policy_document" "lambda_ses_policy" {
+  statement {
+    actions = [
+      "ses:sendRawEmail",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:CreateLogGroup"
+    ]
+    resources = ["*"]
+	}
+
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:CopyObject"
+    ]
+    resources = [aws_s3_bucket.emails.arn]
+	}
+}
+
+resource "aws_iam_policy" "lambda_ses_policy" {
+  name = "${local.leading_subdomain}-lambda-email"
+  policy = data.aws_iam_policy_document.lambda_ses_policy.json
+}
+
+resource "aws_iam_role" "lambda_role" {
+  name = "${local.leading_subdomain}-lambda-email"
+  assume_role_policy = data.aws_iam_policy_document.lambda_ses_policy.json
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "attach" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_ses_policy.arn
+}
+
+resource "aws_lambda_function" "lambda_function" {
+  function_name    = "${var.leading_subdomain}_ses-forward"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "lambda.handler"
+  runtime          = "nodejs12.x"
+  filename         = "lambda.zip"
+  tags             = var.tags
+  timeout          = 30
 }
