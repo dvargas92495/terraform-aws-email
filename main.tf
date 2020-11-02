@@ -138,7 +138,7 @@ data "aws_iam_policy_document" "lambda_ses_policy" {
   statement {
     actions = [
       "s3:GetObject",
-      "s3:CopyObject"
+      "s3:PutObject"
     ]
     resources = [aws_s3_bucket.emails.arn]
 	}
