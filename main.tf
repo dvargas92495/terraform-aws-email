@@ -2,6 +2,7 @@ locals {
   mail_from_domain = "admin.${var.domain}"
   leading_subdomain = split(".", var.domain)[0]
   rule_set_name = "${local.leading_subdomain}-rules"
+  email_identity = "support@${var.domain}"
 }
 
 resource "aws_ses_domain_identity" "domain" {
@@ -50,8 +51,19 @@ resource "aws_route53_record" "mail_from_mx_record" {
   records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
 }
 
+resource "aws_ses_receipt_rule_set" "main" {
+  rule_set_name = local.rule_set_name
+}
+
 resource "aws_ses_active_receipt_rule_set" "main" {
   rule_set_name = local.rule_set_name
+  depends_on = [
+    aws_ses_receipt_rule_set.main
+  ]
+}
+
+resource "aws_ses_email_identity" "identity" {
+  email = local.email_identity
 }
 
 data "aws_caller_identity" "current" {}
@@ -89,7 +101,7 @@ resource "aws_s3_bucket" "emails" {
 resource "aws_ses_receipt_rule" "store" {
   name          = "store"
   rule_set_name = local.rule_set_name
-  recipients    = ["support@${var.domain}"]
+  recipients    = [local.email_identity]
   enabled       = true
   scan_enabled  = true
 
@@ -101,4 +113,13 @@ resource "aws_ses_receipt_rule" "store" {
   depends_on = [
     aws_ses_active_receipt_rule_set.main
   ]
+}
+
+data "archive_file" "lambda" {
+  type        = "zip"
+  output_path = "lambda.zip"
+  source {
+    content  = templatefile("${path.module}/lambda-template.js", { from_email = local.email_identity, email_bucket = local.mail_from_domain, domain = local.domain, recipient = local.forward_to })
+    filename = "lambda.js"
+  }
 }
