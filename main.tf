@@ -54,8 +54,36 @@ resource "aws_ses_active_receipt_rule_set" "main" {
   rule_set_name = local.rule_set_name
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "bucket_policy" {
+  statement {
+    actions = [
+      "s3:PutObject",
+    ]
+
+    resources = [
+      aws_s3_bucket.emails.id
+    ]
+
+    principal {
+      type = "Service"
+      identifiers = [
+        "ses.amazonaws.com"
+      ]
+    }
+
+    condition {
+      test = "StringEquals"
+      variable = "aws:Referer"
+      values = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
 resource "aws_s3_bucket" "emails" {
   bucket = local.mail_from_domain
+  policy = data.aws_iam_policy_document.bucket_policy.json
 }
 
 resource "aws_ses_receipt_rule" "store" {
@@ -69,4 +97,8 @@ resource "aws_ses_receipt_rule" "store" {
     bucket_name = aws_s3_bucket.emails.id
     position    = 1
   }
+
+  depends_on = [
+    aws_ses_active_receipt_rule_set.main
+  ]
 }
