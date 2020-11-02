@@ -54,6 +54,10 @@ resource "aws_ses_active_receipt_rule_set" "main" {
   rule_set_name = local.rule_set_name
 }
 
+resource "aws_s3_bucket" "emails" {
+  bucket = local.mail_from_domain
+}
+
 resource "aws_ses_receipt_rule" "store" {
   name          = "store"
   rule_set_name = local.rule_set_name
@@ -62,7 +66,7 @@ resource "aws_ses_receipt_rule" "store" {
   scan_enabled  = true
 
   s3_action {
-    bucket_name = local.mail_from_domain
+    bucket_name = aws_s3_bucket.emails.id
     position    = 1
   }
 }
