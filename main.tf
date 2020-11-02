@@ -161,7 +161,7 @@ resource "aws_iam_role_policy_attachment" "attach" {
 }
 
 resource "aws_lambda_function" "lambda_function" {
-  function_name    = "${var.leading_subdomain}_ses-forward"
+  function_name    = "${local.leading_subdomain}_ses-forward"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda.handler"
   runtime          = "nodejs12.x"
