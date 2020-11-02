@@ -8,6 +8,11 @@ variable "zone_id" {
   description = "The zone id to attach the domain to."
 }
 
+variable "forward_to" {
+  type        = string
+  description = "The email address to forward emails to."
+}
+
 variable "tags" {
     type        = map
     description = "A map of tags to add to all resources"

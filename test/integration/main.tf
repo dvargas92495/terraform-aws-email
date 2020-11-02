@@ -11,4 +11,5 @@ module "email" {
 
     domain  = "example.davidvargas.me"
     zone_id = data.aws_route53_zone.domain.zone_id
+    forward_to = "dvargas92495@gmail.com"
 }
