@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "bucket_policy" {
     ]
 
     resources = [
-      aws_s3_bucket.emails.id
+      "arn:aws:s3:::${local.mail_from_domain}/*",
     ]
 
     principal {
