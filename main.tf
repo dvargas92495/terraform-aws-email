@@ -1,5 +1,7 @@
 locals {
   mail_from_domain = "admin.${var.domain}"
+  leading_subdomain = split(".", var.domain)[0]
+  rule_set_name = "${local.leading_subdomain}-rules"
 }
 
 resource "aws_ses_domain_identity" "domain" {
@@ -38,4 +40,29 @@ resource "aws_route53_record" "mail_from_txt_record" {
   type    = "TXT"
   ttl     = "300"
   records = ["v=spf1 include:amazonses.com ~all"]
+}
+
+resource "aws_route53_record" "mail_from_mx_record" {
+  zone_id = var.zone_id
+  name    = local.mail_from_domain
+  type    = "MX"
+  ttl     = "1800"
+  records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
+}
+
+resource "aws_ses_active_receipt_rule_set" "main" {
+  rule_set_name = local.rule_set_name
+}
+
+resource "aws_ses_receipt_rule" "store" {
+  name          = "store"
+  rule_set_name = local.rule_set_name
+  recipients    = ["support@${var.domain}"]
+  enabled       = true
+  scan_enabled  = true
+
+  s3_action {
+    bucket_name = local.mail_from_domain
+    position    = 1
+  }
 }
