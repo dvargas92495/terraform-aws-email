@@ -50,7 +50,7 @@ resource "aws_route53_record" "mail_from_mx_record" {
   records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
 }
 
-resource "aws_ses_active_receipt_rule" "main" {
+resource "aws_ses_active_receipt_rule_set" "main" {
   rule_set_name = local.rule_set_name
 }
 
