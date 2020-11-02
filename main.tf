@@ -110,6 +110,11 @@ resource "aws_ses_receipt_rule" "store" {
     position    = 1
   }
 
+  lambda_action {
+    function_arn = aws_lambda_function.lambda_function.arn
+    position     = 2
+  }
+
   depends_on = [
     aws_ses_active_receipt_rule_set.main
   ]
