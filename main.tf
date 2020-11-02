@@ -66,7 +66,7 @@ data "aws_iam_policy_document" "bucket_policy" {
       "arn:aws:s3:::${local.mail_from_domain}/*",
     ]
 
-    principal {
+    principals {
       type = "Service"
       identifiers = [
         "ses.amazonaws.com"
