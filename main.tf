@@ -184,3 +184,11 @@ resource "aws_lambda_function" "lambda_function" {
   tags             = var.tags
   timeout          = 30
 }
+
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id   = "AllowExecutionFromSES"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.lambda_function.function_name
+  principal      = "ses.amazonaws.com"
+  source_account = data.aws_caller_identity.current.account_id
+}
