@@ -124,6 +124,16 @@ data "archive_file" "lambda" {
   }
 }
 
+data "aws_iam_policy_document" "assume_lambda_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
 data "aws_iam_policy_document" "lambda_ses_policy" {
   statement {
     actions = [
@@ -151,7 +161,7 @@ resource "aws_iam_policy" "lambda_ses_policy" {
 
 resource "aws_iam_role" "lambda_role" {
   name = "${local.leading_subdomain}-lambda-email"
-  assume_role_policy = data.aws_iam_policy_document.lambda_ses_policy.json
+  assume_role_policy = data.aws_iam_policy_document.assume_lambda_policy.json
   tags = var.tags
 }
 
