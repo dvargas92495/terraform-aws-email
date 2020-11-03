@@ -155,7 +155,7 @@ data "aws_iam_policy_document" "lambda_ses_policy" {
       "s3:GetObject",
       "s3:PutObject"
     ]
-    resources = [aws_s3_bucket.emails.arn]
+    resources = ["${aws_s3_bucket.emails.arn}/*"]
 	}
 }
 
