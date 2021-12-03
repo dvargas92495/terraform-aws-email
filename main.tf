@@ -5,7 +5,7 @@ locals {
   email_identity = "${var.email_identity}@${var.domain}"
   domain_parts = split(".", var.domain)
   tags = length(var.tags) > 0 ? var.tags : {
-    Application = join(slice(local.domain_parts, length(local.domain_parts) - 2, length(local.domain_parts)), "-")
+    Application = join("-", slice(local.domain_parts, length(local.domain_parts) - 2, length(local.domain_parts)))
   }
 }
 
