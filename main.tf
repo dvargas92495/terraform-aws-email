@@ -3,7 +3,7 @@ locals {
   leading_subdomain = replace(replace(var.domain, "/\\..*$/", ""), ".", "-")
   rule_set_name = "${local.leading_subdomain}-rules"
   email_identity = "${var.email_identity}@${var.domain}"
-  domain_parts = split(var.domain, ".")
+  domain_parts = split(".", var.domain)
   tags = length(var.tags) > 0 ? var.tags : {
     Application = join(slice(local.domain_parts, length(local.domain_parts) - 2, length(local.domain_parts)), "-")
   }
@@ -61,7 +61,7 @@ resource "aws_ses_email_identity" "identity" {
 
 module "ruleset" {
   source = "./ruleset"
-  count = length(var.forward_to) ? 1 : 0
+  count = length(var.forward_to) > 0 ? 1 : 0
 
   rule_set_name = local.rule_set_name
   mail_from_domain = local.mail_from_domain
