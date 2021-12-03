@@ -123,12 +123,12 @@ data "aws_iam_policy_document" "lambda_ses_policy" {
 }
 
 resource "aws_iam_policy" "lambda_ses_policy" {
-  name = "${local.leading_subdomain}-lambda-email"
+  name = "${var.leading_subdomain}-lambda-email"
   policy = data.aws_iam_policy_document.lambda_ses_policy.json
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name = "${local.leading_subdomain}-lambda-email"
+  name = "${var.leading_subdomain}-lambda-email"
   assume_role_policy = data.aws_iam_policy_document.assume_lambda_policy.json
   tags = var.tags
 }
@@ -139,7 +139,7 @@ resource "aws_iam_role_policy_attachment" "attach" {
 }
 
 resource "aws_lambda_function" "lambda_function" {
-  function_name    = "${local.leading_subdomain}_ses-forward"
+  function_name    = "${var.leading_subdomain}_ses-forward"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda.handler"
   runtime          = "nodejs14.x"
