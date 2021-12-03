@@ -1,8 +1,12 @@
 locals {
   mail_from_domain = "admin.${var.domain}"
-  leading_subdomain = split(".", var.domain)[0]
+  leading_subdomain = replace(replace(var.domain, "/\\..*$/", ""), ".", "-")
   rule_set_name = "${local.leading_subdomain}-rules"
-  email_identity = "support@${var.domain}"
+  email_identity = "${var.email_identity}@${var.domain}"
+  domain_parts = split(var.domain, ".")
+  tags = length(var.tags) > 0 ? var.tags : {
+    Application = join(slice(var.domain_parts, length(var.domain_parts) - 2, length(var.domain_parts)), "-")
+  }
 }
 
 resource "aws_ses_domain_identity" "domain" {
@@ -51,144 +55,17 @@ resource "aws_route53_record" "mail_from_mx_record" {
   records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
 }
 
-resource "aws_ses_receipt_rule_set" "main" {
-  rule_set_name = local.rule_set_name
-}
-
-resource "aws_ses_active_receipt_rule_set" "main" {
-  rule_set_name = local.rule_set_name
-  depends_on = [
-    aws_ses_receipt_rule_set.main
-  ]
-}
-
 resource "aws_ses_email_identity" "identity" {
   email = local.email_identity
 }
 
-data "aws_caller_identity" "current" {}
+module "ruleset" {
+  source = "./ruleset"
+  count = length(var.forward_to) ? 1 : 0
 
-data "aws_iam_policy_document" "bucket_policy" {
-  statement {
-    actions = [
-      "s3:PutObject",
-    ]
-
-    resources = [
-      "arn:aws:s3:::${local.mail_from_domain}/*",
-    ]
-
-    principals {
-      type = "Service"
-      identifiers = [
-        "ses.amazonaws.com"
-      ]
-    }
-
-    condition {
-      test = "StringEquals"
-      variable = "aws:Referer"
-      values = [data.aws_caller_identity.current.account_id]
-    }
-  }
-}
-
-resource "aws_s3_bucket" "emails" {
-  bucket = local.mail_from_domain
-  policy = data.aws_iam_policy_document.bucket_policy.json
-}
-
-resource "aws_ses_receipt_rule" "store" {
-  name          = "store"
   rule_set_name = local.rule_set_name
-  recipients    = [local.email_identity]
-  enabled       = true
-  scan_enabled  = true
-
-  s3_action {
-    bucket_name = aws_s3_bucket.emails.id
-    position    = 1
-  }
-
-  lambda_action {
-    function_arn = aws_lambda_function.lambda_function.arn
-    position     = 2
-  }
-
-  depends_on = [
-    aws_ses_active_receipt_rule_set.main
-  ]
-}
-
-data "archive_file" "lambda" {
-  type        = "zip"
-  output_path = "lambda.zip"
-  source {
-    content  = templatefile("${path.module}/lambda-template.js", { from_email = local.email_identity, email_bucket = local.mail_from_domain, domain = var.domain, recipient = var.forward_to })
-    filename = "lambda.js"
-  }
-}
-
-data "aws_iam_policy_document" "assume_lambda_policy" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-  }
-}
-
-data "aws_iam_policy_document" "lambda_ses_policy" {
-  statement {
-    actions = [
-      "ses:sendRawEmail",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:CreateLogGroup"
-    ]
-    resources = ["*"]
-	}
-
-  statement {
-    actions = [
-      "s3:GetObject",
-      "s3:PutObject"
-    ]
-    resources = ["${aws_s3_bucket.emails.arn}/*"]
-	}
-}
-
-resource "aws_iam_policy" "lambda_ses_policy" {
-  name = "${local.leading_subdomain}-lambda-email"
-  policy = data.aws_iam_policy_document.lambda_ses_policy.json
-}
-
-resource "aws_iam_role" "lambda_role" {
-  name = "${local.leading_subdomain}-lambda-email"
-  assume_role_policy = data.aws_iam_policy_document.assume_lambda_policy.json
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "attach" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_ses_policy.arn
-}
-
-resource "aws_lambda_function" "lambda_function" {
-  function_name    = "${local.leading_subdomain}_ses-forward"
-  role             = aws_iam_role.lambda_role.arn
-  handler          = "lambda.handler"
-  runtime          = "nodejs12.x"
-  filename         = "lambda.zip"
-  tags             = var.tags
-  timeout          = 30
-}
-
-resource "aws_lambda_permission" "apigw_lambda" {
-  statement_id   = "AllowExecutionFromSES"
-  action         = "lambda:InvokeFunction"
-  function_name  = aws_lambda_function.lambda_function.function_name
-  principal      = "ses.amazonaws.com"
-  source_account = data.aws_caller_identity.current.account_id
+  mail_from_domain = local.mail_from_domain
+  forward_to = var.forward_to
+  leading_subdomain = local.leading_subdomain
+  tags = local.tags
 }

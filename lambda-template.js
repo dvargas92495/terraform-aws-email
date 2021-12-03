@@ -38,16 +38,9 @@ console.log("AWS Lambda SES Forwarder // @arithmetric // Version 5.0.0");
 //
 //   To match all email addresses matching no other mapping, use "@" as a key.
 var defaultConfig = {
-  fromEmail: "${from_email}",
-  subjectPrefix: "",
   emailBucket: "${email_bucket}",
   emailKeyPrefix: "",
-  allowPlusSign: true,
-  forwardMapping: {
-    "@${domain}": [
-      "${recipient}",
-    ]
-  }
+  forwardMapping: "${recipient}",
 };
 
 /**
@@ -88,40 +81,8 @@ exports.transformRecipients = function(data) {
   var newRecipients = [];
   data.originalRecipients = data.recipients;
   data.recipients.forEach(function(origEmail) {
-    var origEmailKey = origEmail.toLowerCase();
-    if (data.config.allowPlusSign) {
-      origEmailKey = origEmailKey.replace(/\+.*?@/, '@');
-    }
-    if (data.config.forwardMapping.hasOwnProperty(origEmailKey)) {
-      newRecipients = newRecipients.concat(
-        data.config.forwardMapping[origEmailKey]);
-      data.originalRecipient = origEmail;
-    } else {
-      var origEmailDomain;
-      var origEmailUser;
-      var pos = origEmailKey.lastIndexOf("@");
-      if (pos === -1) {
-        origEmailUser = origEmailKey;
-      } else {
-        origEmailDomain = origEmailKey.slice(pos);
-        origEmailUser = origEmailKey.slice(0, pos);
-      }
-      if (origEmailDomain &&
-          data.config.forwardMapping.hasOwnProperty(origEmailDomain)) {
-        newRecipients = newRecipients.concat(
-          data.config.forwardMapping[origEmailDomain]);
-        data.originalRecipient = origEmail;
-      } else if (origEmailUser &&
-        data.config.forwardMapping.hasOwnProperty(origEmailUser)) {
-        newRecipients = newRecipients.concat(
-          data.config.forwardMapping[origEmailUser]);
-        data.originalRecipient = origEmail;
-      } else if (data.config.forwardMapping.hasOwnProperty("@")) {
-        newRecipients = newRecipients.concat(
-          data.config.forwardMapping["@"]);
-        data.originalRecipient = origEmail;
-      }
-    }
+    newRecipients = newRecipients.concat(data.config.forwardMapping);
+    data.originalRecipient = origEmail;
   });
 
   if (!newRecipients.length) {
@@ -233,9 +194,10 @@ exports.processMessage = function(data) {
     /^from:[\t ]?(.*(?:\r?\n\s+.*)*)/mgi,
     function(match, from) {
       var fromText;
-      if (data.config.fromEmail) {
+      var fromEmail = data.event?.Records?.[0]?.ses?.mail?.destination?.[0];
+      if (fromEmail) {
         fromText = 'From: ' + from.replace(/<(.*)>/, '').trim() +
-        ' <' + data.config.fromEmail + '>';
+        ' <' + fromEmail + '>';
       } else {
         fromText = 'From: ' + from.replace('<', 'at ').replace('>', '') +
         ' <' + data.originalRecipient + '>';
