@@ -49,7 +49,7 @@ resource "aws_route53_record" "mail_from_txt_record" {
 
 resource "aws_route53_record" "mail_from_mx_record" {
   zone_id = var.zone_id
-  name    = var.domain
+  name    = local.mail_from_domain
   type    = "MX"
   ttl     = "1800"
   records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
