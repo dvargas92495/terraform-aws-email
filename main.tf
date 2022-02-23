@@ -52,7 +52,7 @@ resource "aws_route53_record" "mail_from_mx_record" {
   name    = local.mail_from_domain
   type    = "MX"
   ttl     = "1800"
-  records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
+  records = ["10 feedback-smtp.us-east-1.amazonaws.com"]
 }
 
 resource "aws_ses_email_identity" "identity" {
