@@ -55,6 +55,14 @@ resource "aws_route53_record" "mail_from_mx_record" {
   records = ["10 feedback-smtp.us-east-1.amazonaws.com"]
 }
 
+resource "aws_route53_record" "inbound_mx_record" {
+  zone_id = var.zone_id
+  name    = var.domain
+  type    = "MX"
+  ttl     = "1800"
+  records = ["inbound-smtp.us-east-1.amazonaws.com"]
+}
+
 resource "aws_ses_email_identity" "identity" {
   email = local.email_identity
 }
