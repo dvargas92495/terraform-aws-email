@@ -56,6 +56,17 @@ data "aws_iam_policy_document" "bucket_policy" {
   }
 }
 
+resource "aws_dynamodb_table" "store" {
+  name           = "${var.leading_subdomain}EmailMapping"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}
+
 resource "aws_s3_bucket" "emails" {
   bucket = var.mail_from_domain
   policy = data.aws_iam_policy_document.bucket_policy.json
@@ -87,7 +98,7 @@ data "archive_file" "lambda" {
   type        = "zip"
   output_path = "lambda.zip"
   source {
-    content  = templatefile("${path.module}/lambda-template.js", { email_bucket = var.mail_from_domain, recipient = var.forward_to })
+    content  = templatefile("${path.module}/lambda-template.js", { email_bucket = var.mail_from_domain, recipient = var.forward_to, mapping = "${var.leading_subdomain}EmailMapping" })
     filename = "lambda.js"
   }
 }
