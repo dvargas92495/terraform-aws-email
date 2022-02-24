@@ -156,6 +156,7 @@ resource "aws_lambda_function" "lambda_function" {
   runtime          = "nodejs14.x"
   filename         = "lambda.zip"
   tags             = var.tags
+  source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 30
 }
 
