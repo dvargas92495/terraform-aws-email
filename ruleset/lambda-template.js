@@ -6,7 +6,7 @@ const dynamo = new AWS.DynamoDB();
 var defaultConfig = {
   emailBucket: "${email_bucket}",
   emailKeyPrefix: "",
-  forwardMapping: "{mapping}",
+  forwardMapping: "${mapping}",
   defaultForwardMapping: "${recipient}",
 };
 
