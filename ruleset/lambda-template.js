@@ -53,12 +53,12 @@ exports.transformRecipients = function (data) {
     data.recipients.map((original) =>
       dynamo
         .getItem({
-          TableName: data.forwardMapping,
+          TableName: data.config.forwardMapping,
           Key: { id: { S: original } },
         })
         .promise()
-        .then((r) => r.Item?.forward?.S || data.defaultForwardMapping)
-        .catch(() => data.defaultForwardMapping)
+        .then((r) => r.Item?.forward?.S || data.config.defaultForwardMapping)
+        .catch(() => data.config.defaultForwardMapping)
         .then((forward) => ({ forward, original }))
     )
   ).then((newRecipients) => {
