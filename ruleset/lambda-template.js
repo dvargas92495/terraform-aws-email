@@ -58,7 +58,15 @@ exports.transformRecipients = function (data) {
         })
         .promise()
         .then((r) => r.Item?.forward?.S || data.config.defaultForwardMapping)
-        .catch(() => data.config.defaultForwardMapping)
+        .catch((err) => {
+          data.log({
+            level: "error",
+            message: "dynamo forward mapping: " + err.message,
+            error: err,
+            stack: err.stack,
+          });
+          return data.config.defaultForwardMapping;
+        })
         .then((forward) => ({ forward, original }))
     )
   ).then((newRecipients) => {

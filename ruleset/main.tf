@@ -131,6 +131,15 @@ data "aws_iam_policy_document" "lambda_ses_policy" {
     ]
     resources = ["${aws_s3_bucket.emails.arn}/*"]
   }
+
+  statement {
+    actions = [
+      "dynamodb:GetItem"
+    ]
+    resources = [
+      aws_dynamodb_table.store.arn
+    ]
+  }
 }
 
 resource "aws_iam_policy" "lambda_ses_policy" {
