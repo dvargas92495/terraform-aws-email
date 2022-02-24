@@ -60,7 +60,7 @@ resource "aws_route53_record" "inbound_mx_record" {
   name    = var.domain
   type    = "MX"
   ttl     = "1800"
-  records = ["inbound-smtp.us-east-1.amazonaws.com"]
+  records = ["10 inbound-smtp.us-east-1.amazonaws.com"]
 }
 
 resource "aws_ses_email_identity" "identity" {
