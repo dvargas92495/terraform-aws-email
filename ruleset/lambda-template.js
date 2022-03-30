@@ -272,7 +272,7 @@ exports.sendMessage = function (data) {
             "sendMessage: Sending email via SES. Original recipients: " +
             r.original +
             ". Transformed recipients: " +
-            Destinations.join(", ") +
+            r.forward +
             ".",
         });
         return new Promise(function (resolve, reject) {
