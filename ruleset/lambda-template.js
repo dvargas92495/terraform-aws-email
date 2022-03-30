@@ -297,13 +297,13 @@ exports.sendMessage = function (data) {
       } else if (r.method === 's3') {
         return s3.upload({
           Bucket: r.forward,
-          Key: `_emails/${r.original}/`,
+          Key: "_emails/" + r.original + "/",
           Body: r.emailData,
         }).promise();
       } else {
         data.log({
           level: "info",
-          message: `Unknown method ${r.method}`,
+          message: "Unknown method " + r.method,
         });
         return;
       }
