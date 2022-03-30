@@ -2,6 +2,8 @@
 
 var AWS = require("aws-sdk");
 const dynamo = new AWS.DynamoDB();
+const s3 = new AWS.S3({ signatureVersion: "v4" });
+const ses = new AWS.SES();
 
 var defaultConfig = {
   emailBucket: "${email_bucket}",
@@ -57,7 +59,10 @@ exports.transformRecipients = function (data) {
           Key: { id: { S: original } },
         })
         .promise()
-        .then((r) => r.Item?.forward?.S || data.config.defaultForwardMapping)
+        .then((r) => ({
+          forward: r.Item?.forward?.S || data.config.defaultForwardMapping,
+          method: r.Item?.method?.S || "email",
+        }))
         .catch((err) => {
           data.log({
             level: "error",
@@ -65,9 +70,12 @@ exports.transformRecipients = function (data) {
             error: err,
             stack: err.stack,
           });
-          return data.config.defaultForwardMapping;
+          return {
+            forward: data.config.defaultForwardMapping,
+            method: "email",
+          };
         })
-        .then((forward) => ({ forward, original }))
+        .then((args) => ({ original, ...args }))
     )
   ).then((newRecipients) => {
     data.recipients = newRecipients;
@@ -94,7 +102,7 @@ exports.fetchMessage = function (data) {
       data.email.messageId,
   });
   return new Promise(function (resolve, reject) {
-    data.s3.copyObject(
+    s3.copyObject(
       {
         Bucket: data.config.emailBucket,
         CopySource:
@@ -121,7 +129,7 @@ exports.fetchMessage = function (data) {
         }
 
         // Load the raw email from S3
-        data.s3.getObject(
+        s3.getObject(
           {
             Bucket: data.config.emailBucket,
             Key: data.config.emailKeyPrefix + data.email.messageId,
@@ -248,44 +256,57 @@ exports.processMessage = function (data) {
  * @return {object} - Promise resolved with data.
  */
 exports.sendMessage = function (data) {
-  const Destinations = data.recipients.map((r) => r.forward);
   return Promise.all(
     data.recipients.map((r) => {
-      const params = {
-        Destinations,
-        Source: r.original,
-        RawMessage: {
-          Data: data.emailData,
-        },
-      };
-      data.log({
-        level: "info",
-        message:
-          "sendMessage: Sending email via SES. Original recipients: " +
-          r.original +
-          ". Transformed recipients: " +
-          Destinations.join(", ") +
-          ".",
-      });
-      return new Promise(function (resolve, reject) {
-        data.ses.sendRawEmail(params, function (err, result) {
-          if (err) {
-            data.log({
-              level: "error",
-              message: "sendRawEmail() returned error.",
-              error: err,
-              stack: err.stack,
-            });
-            return reject(new Error("Error: Email sending failed."));
-          }
-          data.log({
-            level: "info",
-            message: "sendRawEmail() successful.",
-            result: result,
-          });
-          resolve(result);
+      if (r.method === "email") {
+        const params = {
+          Destinations: [r.forward],
+          Source: r.original,
+          RawMessage: {
+            Data: data.emailData,
+          },
+        };
+        data.log({
+          level: "info",
+          message:
+            "sendMessage: Sending email via SES. Original recipients: " +
+            r.original +
+            ". Transformed recipients: " +
+            Destinations.join(", ") +
+            ".",
         });
-      });
+        return new Promise(function (resolve, reject) {
+          ses.sendRawEmail(params, function (err, result) {
+            if (err) {
+              data.log({
+                level: "error",
+                message: "sendRawEmail() returned error.",
+                error: err,
+                stack: err.stack,
+              });
+              return reject(new Error("Error: Email sending failed."));
+            }
+            data.log({
+              level: "info",
+              message: "sendRawEmail() successful.",
+              result: result,
+            });
+            resolve(result);
+          });
+        });
+      } else if (r.method === 's3') {
+        return s3.upload({
+          Bucket: r.forward,
+          Key: `_emails/${r.original}/`,
+          Body: r.emailData,
+        }).promise();
+      } else {
+        data.log({
+          level: "info",
+          message: `Unknown method ${r.method}`,
+        });
+        return;
+      }
     })
   ).then(() => data);
 };
@@ -317,11 +338,6 @@ exports.handler = function (event, context, callback, overrides) {
     context: context,
     config: overrides && overrides.config ? overrides.config : defaultConfig,
     log: overrides && overrides.log ? overrides.log : console.log,
-    ses: overrides && overrides.ses ? overrides.ses : new AWS.SES(),
-    s3:
-      overrides && overrides.s3
-        ? overrides.s3
-        : new AWS.S3({ signatureVersion: "v4" }),
   };
   Promise.series(steps, data)
     .then(function (data) {
