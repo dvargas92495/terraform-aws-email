@@ -1,3 +1,6 @@
 terraform.exe
 dummy.zip
 .terraform/
+node_modules
+lib
+src
