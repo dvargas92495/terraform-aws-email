@@ -56,6 +56,7 @@ resource "aws_route53_record" "mail_from_mx_record" {
 }
 
 resource "aws_route53_record" "inbound_mx_record" {
+  count   = var.inbound ? 1 : 0
   zone_id = var.zone_id
   name    = var.domain
   type    = "MX"

@@ -14,6 +14,12 @@ variable "forward_to" {
   default     = ""
 }
 
+variable "inbound" {
+  type        = bool
+  description = "Whether or not to accept inbound from this hosted zone"
+  default     = true
+}
+
 variable "tags" {
     type        = map
     description = "A map of tags to add to all resources"
