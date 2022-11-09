@@ -6,7 +6,7 @@
     {
       "name": "aws-email",
       "source": "dvargas92495/email/aws",
-      "version": "2.0.12"
+      "version": "2.1.0"
     }
   ],
   "codeMakerOutput": "src",
