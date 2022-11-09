@@ -1,6 +1,6 @@
 {
   "name": "@dvargas92495/aws-email",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Prebuilt AWS Email Module for Terraform CDK (cdktf)",
   "main": "lib/aws-email.js",
   "types": "lib/aws-email.d.ts",
